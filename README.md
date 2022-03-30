@@ -18,7 +18,9 @@ times. A negative coefficient indicates that the log duration time decreases, le
 
 In this chapter we will learn how to apply AFTM to a large order picking dataset. We will stepwise add independent variables to the model in order to explain the time per pick as the dependent variable (the survival object).
 
-
+### Distribution of dependent variable
+![image](https://user-images.githubusercontent.com/102478331/160793098-6e3c0564-41fb-40bc-afe2-54a0f369e56c.png)
+Source: https://methods.sagepub.com/images/virtual/introducing-survival-and-event-history-analysis/p118-1.jpg
 
 ## Sources:
 - Mills, M. (2011). Introducing survival and event history analysis. ISBN: 9781848601024
