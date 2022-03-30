@@ -18,6 +18,265 @@ times. A negative coefficient indicates that the log duration time decreases, le
 
 In this chapter we will learn how to apply AFTM to a large order picking dataset. We will stepwise add independent variables to the model in order to explain the time per pick as the dependent variable (the survival object).
 
+### Loading the relevant packages in R
+
+´´´
+library("corrplot")
+library("data.table")
+library("eha")
+library("flexsurv")
+library("fs")
+library("ggplot2")
+library("ggpubr")
+library("JM")
+library("lattice")
+library("plyr")
+library("Rcpp")
+library("reshape2")
+library("readxl")
+library("rms")
+library("splines")
+library("stargazer")
+library("survival")
+library("survminer")
+library("tidyverse")
+library("sjPlot")
+library("sjmisc")
+library("sjstats")
+library("stats")
+library("lme4")
+library("haven")
+library("MuMIn")
+library("devtools")
+library("corrplot")
+library("data.table")
+library("eha")
+library("flexsurv")
+library("fs")
+library("ggplot2")
+library("ggpubr")
+library("JM")
+library("lattice")
+library("PerformanceAnalytics")
+library("plyr")
+library("Rcpp")
+library("readxl")
+library("reshape2")
+library("rms")
+library("splines")
+library("stargazer")
+library("survival")
+library("survminer")
+library("tidyverse")
+library("mosaicData")
+library("dplyr")
+library("treemapify")
+library("scales")
+library("ggcorrplot")
+library("factoextra")
+library("superheat")
+library("texreg")
+library("data.table")
+library("devtools")
+library("plm")
+library("corrplot")
+library("data.table")
+library("eha")
+library("flexsurv")
+library("fs")
+library("ggplot2")
+library("ggpubr")
+library("JM")
+library("lattice")
+library("plyr")
+library("Rcpp")
+library("reshape2")
+library("readxl")
+library("rms")
+library("splines")
+library("stargazer")
+library("survival")
+library("survminer")
+library("tidyverse")
+library("sjPlot")
+library("sjmisc")
+library("sjstats")
+library("stats")
+library("lme4")
+library("haven")
+library("MuMIn")
+library("devtools")
+library("corrplot")
+library("data.table")
+library("eha")
+library("flexsurv")
+library("fs")
+library("ggplot2")
+library("ggpubr")
+library("JM")
+library("lattice")
+library("PerformanceAnalytics")
+library("plyr")
+library("Rcpp")
+library("readxl")
+library("reshape2")
+library("rms")
+library("splines")
+library("stargazer")
+library("survival")
+library("survminer")
+library("tidyverse")
+library("mosaicData")
+library("dplyr")
+library("treemapify")
+library("scales")
+library("ggcorrplot")
+library("factoextra")
+library("superheat")
+library("texreg")
+library("sjPlot")
+library("sjmisc")
+library("sjstats")
+library("stats")
+library("lme4")
+library("haven")
+library("MuMIn")
+library("sjPlot")
+library("sjmisc")
+library("sjstats")
+library("stats")
+library("lme4")
+library("haven")
+library("MuMIn")
+library("devtools")
+library("plm")
+library("readxl")
+library("dplyr")
+library("vtable")
+library("plm")
+library("PerformanceAnalytics")
+library("tidyverse")
+library("corrplot")
+library("Hmisc")
+library("stargazer")
+library("dplyr")
+library("psych")
+library("tidyverse")
+library("corrplot")
+library("data.table")
+library("eha")
+library("flexsurv")
+library("fs")
+library("ggplot2")
+library("ggpubr")
+library("JM")
+library("lattice")
+library("PerformanceAnalytics")
+library("tidyverse")
+library("Rcpp")
+library("readxl")
+library("reshape2")
+library("rms")
+library("splines")
+library("stargazer")
+library("survival")
+library("survminer")
+library("tidyverse")
+library("multtest")
+´´´
+
+### Application of AFTM for order picking
+
+(1) We load the dataset ´BON1´ into R and then we have a look at the first lines. 
+
+´´´
+view(BON1)
+´´´
+
+(2) We define the time per pick in seconds as the dependent variable and survival model.
+
+´´´
+PICKINGTIME <- as.matrix(BON1['picktime']) 
+´´´
+
+(3) We define the independent variable of interest. In our case, this is the transport unit used in a warehouse for deep-freeze and perishable items.
+
+´´´
+unit <- as.matrix(BON1['unit']) 
+´´´
+
+(4) Finally, we define several control variables in our model.
+
+´´´
+PICKER       <- as.matrix(BON1['MDENR'])                #7
+DIST         <- as.matrix(BON1['distance'])             #32
+WEIGHT       <- as.matrix(BON1['weight'])               #28
+VOL          <- as.matrix(BON1['volume'])               #29
+CUM_PICKS    <- as.matrix(BON1['AUFTRAGSPOS'])          #6
+PICKS        <- as.matrix(BON1['ANZ_PICK'])             #12
+LEV          <- as.matrix(BON1['level'])                #22
+ART_PACKAGE  <- as.matrix(BON1['packes_SKU'])           #25
+Experience   <- as.matrix(BON1['picker_experience'])    #31
+´´´
+
+- ´PICKER´: The anonymous identification number of the order picker.
+- ´DIST´: Distance travelled from pick location to pick location.
+- ´WEIGHT´: Weight in kg per SKU picked.
+- ´VOL´: Volume in liters per SKU picked.
+- ´CUM_PICKS´: Number of cumulative picks within a batch at the point of a pick.
+- ´PICKS´: Number of picks from the respective pick location.
+- ´LEV´: Level of pick location which can be the ground level (level 0=ground level) or the chest level (level 1=chest level).
+- ´ART_PACKAGE´: Number of primary packages in one stock keepting unit.
+- ´Experience´: The cumulative number of picks for one order picker in the respective dataset.
+
+(5) We formulate the AFTM. ´AFTM01´ is the null model where we only integrate the control variables while we integrate the independent variable of interest in ´AFTM02´. Herein, we only allow one regression line for the entire model.
+
+´´´
+AFTM01<-survreg(
+  formula = Surv(PICKINGTIME) ~  VOL + WEIGHT + DIST + CUM_PICKS + PICKS + LEV + ART_PACKAGE + Experience, 
+  data = BON1, 
+  dist = "loglogistic")
+
+AFTM02<-survreg(
+  formula = Surv(PICKINGTIME) ~  unit + VOL + WEIGHT + DIST + CUM_PICKS + PICKS + LEV + ART_PACKAGE + Experience, 
+  data = BON1, 
+  dist = "loglogistic")
+´´´
+
+(6) We formulate the AFTM. ´AFTM10´ is the null model where we only integrate the control variables while we integrate the independent variable of interest in ´AFTM11´. Herein, we only allow one regression line per order picker identification number.
+
+´´´
+AFTM10<-survreg(
+  formula = Surv(PICKINGTIME) ~  VOL + WEIGHT + DIST + CUM_PICKS + PICKS + LEV + ART_PACKAGE + Experience + strata(PICKER), 
+  data = BON1, 
+  dist = "loglogistic")
+
+AFTM11<-survreg(
+  formula = Surv(PICKINGTIME) ~  unit + VOL + WEIGHT + DIST + CUM_PICKS + PICKS + LEV + ART_PACKAGE + Experience + strata(PICKER), 
+  data = BON1, 
+  dist = "loglogistic")
+´´´
+
+(7) We create an output table for the AFTM. 
+
+´´´
+stargazer(AFTM01, AFTM02, AFTM10, AFTM11,
+          type = "html", 
+          digits=4,
+          order=c(""),
+          dep.var.labels=c("Survival object of picking time (sec.)"),
+          no.space=TRUE,
+          summary=TRUE,
+          single.row=TRUE,
+          rownames=TRUE,
+          align=TRUE,
+          out="D:/Dokumente/203_Transport unit deep frozen_IJLRA/02_R Results/with and without subsets_randompicker.html",
+          flip = FALSE)
+´´´
+
+![image](https://user-images.githubusercontent.com/102478331/160859649-64780352-0de8-4791-849b-a53f92da50a2.png)
+
+
 ### Interpretation of estimates
 
 ![image](https://user-images.githubusercontent.com/102478331/160800944-7c47428e-6fc9-48df-8666-924f1ae74621.png)
