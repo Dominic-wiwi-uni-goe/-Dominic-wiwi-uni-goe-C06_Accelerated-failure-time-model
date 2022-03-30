@@ -291,3 +291,7 @@ Source: https://methods.sagepub.com/images/virtual/introducing-survival-and-even
 
 ## Sources:
 - Mills, M. (2011). Introducing survival and event history analysis. ISBN: 9781848601024
+- https://methods.sagepub.com/images/virtual/introducing-survival-and-event-history-analysis/p131-1.jpg
+- https://methods.sagepub.com/images/virtual/introducing-survival-and-event-history-analysis/p118-1.jpg
+
+
